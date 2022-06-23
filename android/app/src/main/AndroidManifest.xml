@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.toner">
    <application
-        android:label="toner"
+        android:label="Toner"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
