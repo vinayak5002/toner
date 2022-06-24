@@ -90,15 +90,21 @@ class _MyHomePageState extends State<MyHomePage> {
                     duration: const Duration(seconds: 1),
                     height: bound.height * 0.3,
                     width: bound.height * 0.3,
-                    decoration: const BoxDecoration(
-                      color: Colors.yellow,
+                    decoration: BoxDecoration(
+                      color: Color.fromRGBO(20, 61, 217, 1),
                       shape: BoxShape.circle,
                       boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey,
-                          blurRadius: 10,
-                          offset: Offset(0, 10),
-                        ),
+                        darkMode
+                            ? const BoxShadow(
+                                color: Colors.black,
+                                blurRadius: 10,
+                                offset: Offset(0, 10),
+                              )
+                            : const BoxShadow(
+                                color: Colors.grey,
+                                blurRadius: 10,
+                                offset: Offset(0, 10),
+                              ),
                       ],
                     ),
                     child: Icon(
