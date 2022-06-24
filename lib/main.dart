@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter_mute/flutter_mute.dart';
+import 'package:toner/constants/themes.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,64 +29,53 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool on = false;
-  // RingerMode _mode = RingerMode.Silent;
-
-  // Future<void> getRingerMode() async {
-  //   RingerMode? mode = await FlutterMute.getRingerMode();
-
-  //   if (!mounted) return;
-
-  //   setState(() {
-  //     _mode = mode;
-  //   });
-  // }
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   getRingerMode();
-  // }
-
-  bool _mode = false;
-
-  Widget kRingerOnImage = const Image(
-    image: AssetImage('assets/images/bell.png'),
-    width: 100,
-    height: 100,
-  );
-
-  Widget kRingerOffImage = const Image(
-    image: AssetImage('assets/images/belloff.png'),
-    width: 100,
-    height: 100,
-  );
+  final bool _mode = false;
+  bool darkMode = false;
 
   @override
   Widget build(BuildContext context) {
     final bound = MediaQuery.of(context).size;
 
     return Scaffold(
+      backgroundColor: darkMode ? Colors.grey[900] : lightTheme.scaffoldColor,
       appBar: AppBar(
+        centerTitle: true,
         elevation: 0.0,
-        title: const Center(
-            child: Text(
+        title: Text(
           "Toner",
           style: TextStyle(
-              fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black),
-        )),
-        backgroundColor: const Color.fromARGB(31, 255, 255, 255),
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
+            color:
+                darkMode == true ? darkTheme.titleColor : lightTheme.titleColor,
+          ),
+        ),
+        backgroundColor: darkMode ? Colors.grey[900] : lightTheme.scaffoldColor,
+        actions: [
+          IconButton(
+            icon: Icon(
+              !darkMode ? Icons.brightness_3 : Icons.brightness_7,
+              color: darkMode ? Colors.white : Colors.black,
+            ),
+            onPressed: () {
+              setState(() {
+                darkMode = !darkMode;
+              });
+            },
+          ),
+        ],
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             Expanded(
               flex: 1,
               child: Container(
                   padding: const EdgeInsets.fromLTRB(0, 50, 0, 0),
-                  // child: const Icon(Icons.do_not_disturb_on,
-                  //     size: 80, color: Colors.black)),
-                  child: _mode == false ? kRingerOffImage : kRingerOnImage),
+                  child: darkMode == true
+                      ? darkTheme.ringerOffImage
+                      : lightTheme.ringerOffImage),
             ),
             Expanded(
               flex: 3,
