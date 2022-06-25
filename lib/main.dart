@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:toner/constants/themes.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -28,9 +29,46 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool on = false;
-  final bool _mode = false;
   bool darkMode = false;
+  bool button = false;
+
+  @override
+  void initState() {
+    super.initState();
+    loadBits();
+  }
+
+  void loadBits() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    bool? fetchModeBit = pref.getBool("darkMode");
+    bool? fetchButtonBit = pref.getBool("button");
+
+    fetchModeBit ??= false;
+    fetchButtonBit ??= false;
+
+    setState(() {
+      darkMode = fetchModeBit!;
+    });
+    setState(() {
+      button = fetchButtonBit!;
+    });
+  }
+
+  toggleTheme() async {
+    setState(() {
+      darkMode = !darkMode;
+    });
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    pref.setBool("darkMode", darkMode);
+  }
+
+  toggleButton() async {
+    setState(() {
+      button = !button;
+    });
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    pref.setBool("button", button);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,9 +96,7 @@ class _MyHomePageState extends State<MyHomePage> {
               color: darkMode ? Colors.white : Colors.black,
             ),
             onPressed: () {
-              setState(() {
-                darkMode = !darkMode;
-              });
+              toggleTheme();
             },
           ),
         ],
@@ -82,16 +118,14 @@ class _MyHomePageState extends State<MyHomePage> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(bound.height * 0.5),
                 onTap: (() {
-                  setState(() {
-                    on = !on;
-                  });
+                  toggleButton();
                 }),
                 child: AnimatedContainer(
                     duration: const Duration(seconds: 1),
                     height: bound.height * 0.3,
                     width: bound.height * 0.3,
                     decoration: BoxDecoration(
-                      color: Color.fromRGBO(20, 61, 217, 1),
+                      color: const Color.fromRGBO(20, 61, 217, 1),
                       shape: BoxShape.circle,
                       boxShadow: [
                         darkMode
@@ -110,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Icon(
                       CupertinoIcons.power,
                       size: bound.height * 0.1,
-                      color: on ? Colors.red : Colors.grey,
+                      color: button ? Colors.red : Colors.grey,
                     )),
               ),
             ),
