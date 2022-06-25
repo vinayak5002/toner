@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:isolate';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:sound_mode/sound_mode.dart';
+import 'package:sound_mode/utils/ringer_mode_statuses.dart';
 import 'package:toner/constants/themes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,14 +36,37 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   bool darkMode = false;
   bool button = false;
+  bool bell = false;
 
   @override
   void initState() {
     super.initState();
     loadBits();
+
+    Timer mytimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      listenBell();
+    });
   }
 
-  void loadBits() async {
+  listenBell() async {
+    while (true) {
+      String ringerStatus = (await SoundMode.ringerModeStatus).toString();
+      // print(ringerStatus);
+      if (ringerStatus == RingerModeStatus.silent.toString()) {
+        updateBell(false);
+      } else {
+        updateBell(true);
+      }
+    }
+  }
+
+  updateBell(bool newSet) {
+    setState(() {
+      bell = newSet;
+    });
+  }
+
+  loadBits() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     bool? fetchModeBit = pref.getBool("darkMode");
     bool? fetchButtonBit = pref.getBool("button");
@@ -107,14 +135,20 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             Expanded(
               flex: 1,
+              // Ringer Icon
               child: Container(
                   padding: const EdgeInsets.fromLTRB(0, 50, 0, 0),
                   child: darkMode == true
-                      ? darkTheme.ringerOffImage
-                      : lightTheme.ringerOffImage),
+                      ? bell
+                          ? darkTheme.ringerOnImage
+                          : darkTheme.ringerOffImage
+                      : bell
+                          ? lightTheme.ringerOnImage
+                          : lightTheme.ringerOffImage),
             ),
             Expanded(
               flex: 3,
+              // Main Button
               child: InkWell(
                 borderRadius: BorderRadius.circular(bound.height * 0.5),
                 onTap: (() {
