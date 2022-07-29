@@ -70,10 +70,6 @@ void onStart(ServiceInstance service) async {
   // For flutter prior to version 3.0.0
   // We have to register the plugin manually
 
-  SharedPreferences preferences = await SharedPreferences.getInstance();
-  await preferences.setString("hello", "world");
-  preferences.reload();
-
   if (service is AndroidServiceInstance) {
     service.on('setAsForeground').listen((event) {
       service.setAsForegroundService();
@@ -92,8 +88,9 @@ void onStart(ServiceInstance service) async {
   Timer.periodic(const Duration(seconds: 1), (timer) async {
     String ringerStatus = (await SoundMode.ringerModeStatus).toString();
 
-    bool? fetchButtonBit = preferences.getBool("button");
-    print(button);
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    bool? fetchButtonBit = pref.getBool("button");
+    print(fetchButtonBit);
 
     fetchButtonBit ??= false;
 
@@ -102,7 +99,7 @@ void onStart(ServiceInstance service) async {
     if (service is AndroidServiceInstance) {
       service.setForegroundNotificationInfo(
         title: "My App Service",
-        content: "${button} and ${curTime}",
+        content: "${fetchButtonBit} and ${curTime}",
       );
     }
 
@@ -110,7 +107,7 @@ void onStart(ServiceInstance service) async {
     // print('FLUTTER BACKGROUND SERVICE: ${DateTime.now()}');
 
     if (fetchButtonBit) {
-      if (curTime.hour >= 17) {
+      if (curTime.hour >= 16) {
         print("time to change");
         try {
           await SoundMode.setSoundMode(RingerModeStatus.silent);
