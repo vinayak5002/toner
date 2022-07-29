@@ -2,40 +2,23 @@
 
 import 'dart:async';
 import 'dart:developer';
-import 'dart:isolate';
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:sound_mode/permission_handler.dart';
 import 'package:sound_mode/sound_mode.dart';
 import 'package:sound_mode/utils/ringer_mode_statuses.dart';
 import 'package:toner/constants/themes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:flutter_startup/flutter_startup.dart';
-import 'package:flutter_isolate/flutter_isolate.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 
 bool darkMode = false;
 bool button = false;
 bool bell = false;
 
-ReceivePort port = ReceivePort();
-
-void backGround(ReceivePort hello) {
-  port.listen((message) {
-    print("Button $message");
-  });
-
-  Timer.periodic(
-      const Duration(seconds: 1), (timer) => print("Hello from isolate"));
-}
-
-void passMessageToBackGround(bool msg) {
-  port.sendPort.send(msg);
-}
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   bool? isGranted = await PermissionHandler.permissionsGranted;
@@ -44,10 +27,109 @@ void main() async {
     // Opens the Do Not Disturb Access settings to grant the access
     await PermissionHandler.openDoNotDisturbSetting();
   }
-
-  final isolate = await FlutterIsolate.spawn(backGround, port);
-
+  await initializeService();
   runApp(const MyApp());
+}
+
+Future<void> initializeService() async {
+  final service = FlutterBackgroundService();
+  await service.configure(
+    androidConfiguration: AndroidConfiguration(
+      // this will be executed when app is in foreground or background in separated isolate
+      onStart: onStart,
+
+      // auto start service
+      autoStart: true,
+      isForegroundMode: true,
+    ),
+    iosConfiguration: IosConfiguration(
+      // auto start service
+      autoStart: true,
+
+      // this will be executed when app is in foreground in separated isolate
+      onForeground: onStart,
+
+      // you have to enable background fetch capability on xcode project
+      onBackground: onIosBackground,
+    ),
+  );
+  service.startService();
+}
+
+bool onIosBackground(ServiceInstance service) {
+  WidgetsFlutterBinding.ensureInitialized();
+  print('FLUTTER BACKGROUND FETCH');
+
+  return true;
+}
+
+void onStart(ServiceInstance service) async {
+  // Only available for flutter 3.0.0 and later
+  DartPluginRegistrant.ensureInitialized();
+
+  // For flutter prior to version 3.0.0
+  // We have to register the plugin manually
+
+  SharedPreferences preferences = await SharedPreferences.getInstance();
+  await preferences.setString("hello", "world");
+  preferences.reload();
+
+  if (service is AndroidServiceInstance) {
+    service.on('setAsForeground').listen((event) {
+      service.setAsForegroundService();
+    });
+
+    service.on('setAsBackground').listen((event) {
+      service.setAsBackgroundService();
+    });
+  }
+
+  service.on('stopService').listen((event) {
+    service.stopSelf();
+  });
+
+  // bring to foreground
+  Timer.periodic(const Duration(seconds: 1), (timer) async {
+    String ringerStatus = (await SoundMode.ringerModeStatus).toString();
+
+    bool? fetchButtonBit = preferences.getBool("button");
+    print(button);
+
+    fetchButtonBit ??= false;
+
+    var curTime = DateTime.now();
+
+    if (service is AndroidServiceInstance) {
+      service.setForegroundNotificationInfo(
+        title: "My App Service",
+        content: "${button} and ${curTime}",
+      );
+    }
+
+    /// you can see this log in logcat
+    // print('FLUTTER BACKGROUND SERVICE: ${DateTime.now()}');
+
+    if (fetchButtonBit) {
+      if (curTime.hour >= 17) {
+        print("time to change");
+        try {
+          await SoundMode.setSoundMode(RingerModeStatus.silent);
+        } on PlatformException {
+          print('Please enable permissions required');
+        }
+      }
+    }
+
+    // test using external plugin
+
+    service.invoke(
+      'update',
+      {
+        "current_date": DateTime.now().toIso8601String(),
+        // "device": device,
+      },
+    );
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -99,7 +181,6 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     SharedPreferences pref = await SharedPreferences.getInstance();
     pref.setBool("button", button);
-    passMessageToBackGround(button);
   }
 
   loadBits() async {
@@ -133,7 +214,6 @@ class _MyHomePageState extends State<MyHomePage> {
     print("Main code button : ${button}");
     SharedPreferences pref = await SharedPreferences.getInstance();
     pref.setBool("button", button);
-    passMessageToBackGround(button);
   }
 
   @override
