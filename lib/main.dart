@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:developer';
+import 'dart:isolate';
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -12,12 +13,29 @@ import 'package:sound_mode/sound_mode.dart';
 import 'package:sound_mode/utils/ringer_mode_statuses.dart';
 import 'package:toner/constants/themes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:flutter_startup/flutter_startup.dart';
+import 'package:flutter_isolate/flutter_isolate.dart';
 
 bool darkMode = false;
 bool button = false;
 bool bell = false;
 
-Future<void> main() async {
+ReceivePort port = ReceivePort();
+
+void backGround(ReceivePort hello) {
+  port.listen((message) {
+    print("Button $message");
+  });
+
+  Timer.periodic(
+      const Duration(seconds: 1), (timer) => print("Hello from isolate"));
+}
+
+void passMessageToBackGround(bool msg) {
+  port.sendPort.send(msg);
+}
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   bool? isGranted = await PermissionHandler.permissionsGranted;
@@ -26,6 +44,9 @@ Future<void> main() async {
     // Opens the Do Not Disturb Access settings to grant the access
     await PermissionHandler.openDoNotDisturbSetting();
   }
+
+  final isolate = await FlutterIsolate.spawn(backGround, port);
+
   runApp(const MyApp());
 }
 
@@ -78,6 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     SharedPreferences pref = await SharedPreferences.getInstance();
     pref.setBool("button", button);
+    passMessageToBackGround(button);
   }
 
   loadBits() async {
@@ -111,6 +133,7 @@ class _MyHomePageState extends State<MyHomePage> {
     print("Main code button : ${button}");
     SharedPreferences pref = await SharedPreferences.getInstance();
     pref.setBool("button", button);
+    passMessageToBackGround(button);
   }
 
   @override
